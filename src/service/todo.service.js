@@ -1,21 +1,17 @@
 const model = require("../model/todo.model");
 
 exports.getTodo = async () => {
-  const result = await model.getTodo();
-  return result;
+  return await model.getTodo();
 };
 
 exports.createTodo = async (todo) => {
-  const result = await model.createTodo(todo);
-  return result;
+  return await model.createTodo(todo);
 };
 
 exports.updateTodo = async (id, todo) => {
-  const result = await model.updateTodo(id, todo);
-  return result;
+  return await model.updateTodo(id, todo);
 };
 
 exports.deleteTodo = async (id) => {
-    const result = await model.deleteTodo(id);
-    return result;
-}
+  return await model.deleteTodo(id);
+};

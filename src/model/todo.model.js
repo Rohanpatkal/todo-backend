@@ -1,22 +1,25 @@
 const db = require("../config/db");
 
+// ✅ Get all todo
 exports.getTodo = async () => {
-  const [row] = await db.query("SELECT * FROM todo");
-  return row;
+  const result = await db.query("SELECT * FROM todo ORDER BY id ASC");
+  return result.rows; // pg returns rows[]
 };
 
+// ✅ Create a todo
 exports.createTodo = async (todo) => {
   try {
-    const formattedDate = new Date(todo.due_date)
-      .toISOString()
-      .slice(0, 19) // "2025-07-04T18:30:00"
-      .replace("T", " "); // → "2025-07-04 18:30:00"
+    const formattedDate = todo.due_date
+      ? new Date(todo.due_date).toISOString().slice(0, 19).replace("T", " ")
+      : null;
+
     const result = await db.query(
       `
         INSERT INTO todo 
         (todo, completion, status, priority, category, notes, due_date)
-        values (?, ?, ?, ?, ?, ?, ?)
-    `,
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `,
       [
         todo.todo,
         todo.completion,
@@ -27,37 +30,36 @@ exports.createTodo = async (todo) => {
         formattedDate,
       ]
     );
-    return {
-      id: result.insertId,
-      ...todo,
-      due_date: formattedDate, // return MySQL format in response
-    };
+
+    return result.rows[0];
   } catch (error) {
     console.error("Error inserting todo:", error);
     throw error;
   }
 };
 
+// ✅ Update a todo
 exports.updateTodo = async (id, todo) => {
   try {
-    console.log("id is: ", id);
-    console.log("id is: ", todo);
     const formattedDate = todo.due_date
       ? new Date(todo.due_date).toISOString().slice(0, 19).replace("T", " ")
       : null;
-    const [result] = await db.query(
+
+    const result = await db.query(
       `
-    UPDATE todo 
-    SET 
-    todo = ? ,
-    completion = ?,
-    status = ? ,
-    priority = ? ,
-    category = ? ,
-    notes = ? ,
-    due_date = ?
-    WHERE id = ?
-    `,
+        UPDATE todo 
+        SET 
+          todo = $1,
+          completion = $2,
+          status = $3,
+          priority = $4,
+          category = $5,
+          notes = $6,
+          due_date = $7,
+          updated_at = NOW()
+        WHERE id = $8
+        RETURNING *
+      `,
       [
         todo.todo,
         todo.completion,
@@ -69,27 +71,21 @@ exports.updateTodo = async (id, todo) => {
         id,
       ]
     );
-    return {
-      id,
-      ...todo,
-      due_date: formattedDate, // return MySQL format in response
-    };
+
+    return result.rows[0];
   } catch (error) {
-    console.error("Error inserting todo:", error);
+    console.error("Error updating todo:", error);
     throw error;
   }
 };
 
+// ✅ Delete a todo
 exports.deleteTodo = async (id) => {
   try {
-    await db.query(
-      `
-        DELETE FROM todo WHERE id = ?
-        `,
-      id
-    );
-  } catch (err) {
-    console.error("Error delteing todo:", err);
+    await db.query(`DELETE FROM todo WHERE id = $1`, [id]);
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting todo:", error);
     throw error;
   }
 };
